@@ -18,9 +18,9 @@ run the .py file, the script will ask for json file.json (samples included)
 To run the script succesfully, you json config file must have the following:
 ```json
 {
-    "file_path_raw": full file path to your csv file,
-    "group_fields": List containing name of columns which will be used for grouping,
-    "dose_field": Str input of column name for Dose,
-    "od_field": Str input of column name for Response/Optical density,
-    "time_field": Str input of column name for time field
+    "file_path_raw": "full file path to your csv file",
+    "group_fields": "List containing name of columns which will be used for grouping",
+    "dose_field": "Str input of column name for Dose",
+    "od_field": "Str input of column name for Response/Optical density",
+    "time_field": "Str input of column name for time field"
   }
