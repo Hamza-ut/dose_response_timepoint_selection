@@ -16,6 +16,7 @@
 run the .py file, the script will ask for json file.json (samples included)
 
 To run the script succesfully, you json config file must have the following:
+```json
 {
     "file_path_raw": full file path to your csv file,
     "group_fields": List containing name of columns which will be used for grouping,
