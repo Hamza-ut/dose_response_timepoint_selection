@@ -1,7 +1,7 @@
 # drc_timepoint_selection.ipynb
 ## using mean abs diff and SNR ratios to select best timepoint for drc modelling
 #### Test1: uses standardized raw OD/response and find best timepoint using mean diff (variance) b.w response values
-#### Test2: uses signal to noise ratio to identify best timepoint. It also assumes a control dose (minimum dose)
+#### Test2: uses signal to noise ratio to identify best timepoint. It works under control dose/minimum dose assumption.
 
 
 # drc_timepoint_composite_score.py
@@ -13,9 +13,9 @@
 #### 5. Dose response smoothness (Measure of how smoothly the responses (e.g., mean OD values) change as the dose increases. It is particularly important for ensuring that the dose-response curve has a consistent, logical trend without abrupt jumps or fluctuations)
 
 ### How to run:
-run the .py file, the script will ask for json file.json (samples included)
+run the .py file, the script will ask for config.json. Sample configs are added to repo.
 
-To run the script succesfully, you json config file must have the following:
+To run the script succesfully, your json config file must have the following:
 ```json
 {
     "file_path_raw": "full file path to your csv file",
