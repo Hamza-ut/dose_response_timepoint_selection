@@ -59,3 +59,14 @@ SI = IC₅₀ in non-target cells / IC₅₀ in target cells
 
 - **Low EC₅₀ / IC₅₀**: Potent (strong effect at low concentration)
 - **High EC₅₀ / IC₅₀**: Weak (needs more compound for same effect)
+
+
+
+## Plate (96‑well) — mental picture
+A 96‑well plate has 8 rows (A–H) and 12 columns (1–12). Each small box below is a well; each well can contain a different treatment.
+Columns →  1    2    3    4   ...  12
+Row A   | A1 | A2 | A3 | A4 | ... | A12 |
+Row B   | B1 | B2 | B3 | B4 | ... | B12 |
+Row C   | C1 | C2 | C3 | C4 | ... | C12 |
+ ...
+Row H   | H1 | H2 | H3 | H4 | ... | H12 |
