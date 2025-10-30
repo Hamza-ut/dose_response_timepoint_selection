@@ -72,7 +72,7 @@ def timepoint_composite_score(
     Returns:
     pd.DataFrame: A dataframe containing the best timepoint for each group, along with calculated metrics and the composite score.
     """
-    # Standardize OD values if requested, by default its False
+    # Standardize OD values if requested
     if standardize:
         df[od_field] = standardize_od(df, od_field, method)
 
@@ -212,6 +212,10 @@ def main():
             method="minmax",
         )
         print(timepoint_using_composite_score)
+
+        # Save the results to a CSV file
+        # output_file = file_path.stem + "_timepoint_composite_score.csv"
+        # timepoint_using_composite_score.to_csv(output_file, index=False)
 
         # Time consumed
         end = timeit.default_timer()
