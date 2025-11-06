@@ -1,5 +1,5 @@
 {
-    "file_path_raw": "data/timepoint_sf.csv",
+    "file_path": "data/timepoint_sf.csv",
     "group_fields": ["Condition", "Ratio", "Plate"],
     "dose_field": "XMIC",
     "od_field": "Raw_od",

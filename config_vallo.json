@@ -1,5 +1,5 @@
 {
-    "file_path_raw": "data/timepoint_vallo.csv",
+    "file_path": "data/timepoint_vallo.csv",
     "group_fields": ["Species"],
     "dose_field": "uM",
     "od_field": "RawOD",

@@ -139,11 +139,8 @@ After computing all metrics for each timepoint, the algorithm combines them into
 
 ### Computation Steps
 1. Assign weights to each metric based on its importance:
-- SNR → 0.3
-- Correlation → 0.3
-- Coefficient of Variation (CV) → -0.2 (negative because lower CV is better)
-- Dynamic Range → 0.1
-- Smoothness (MAD) → 0.1
+- Order of priority according to various research articles etc is as follow: [SNR, Correlation, CV, Dynamic range, smoothness]
+
 2. Normalize each metric to [0,1] via min-max scaling
 
 $$
@@ -173,19 +170,80 @@ $$
 
 
 
-## Test results
+--------------------------------
+# Additional read (Explanation of compute_metrics function)
+The following section explains the internal mechanics and rationale behind the **compute_metrics()** function — the core logic that helps in identifying optimal timepoint.
 
-| Dataset             | Condition       | Manual Selected Timepoint | Script Suggested Timepoint|
-|---------------------|-----------------|---------------------------|---------------------------|
-| timepoint_vallo.csv | -               | 9.5 – 10.5                | 12.97                     |
-| timepoint_sf.csv    | SF              | 6:59:35                   | 5.99278                   |
-| timepoint_sf.csv    | SFP             | 6:59:35                   | 5.99306                   |
-| timepoint_sf.csv    | 20MSynComm      | 32:59:58 OR 32:59:59      | 32.99944                  |
-| timepoint_sf.csv    | 20MSynComm+ SF  | 32:59:58                  | 6.99306                   |
-| timepoint_sf.csv    | 20MSynComm+ SFP | 32:59:58                  | 5.99306                   |
-|  new data come here | -               | 00:00:00                  | 123456                    |
--------------------------------------------------------------------------------------------------
 
-## Future implementation:
-- Add the standardize=True and method="minmax" or "zscore" options as parameters in the JSON config file instead of hardcoding them in main(), making the workflow more dynamic.
-- currently tested on two datesets, more testing needed
+### Initial grouping
+The first step is to aggregate the raw OD data for all replicates. we combine all replicates (usually from multiple plates or wells).
+
+We group the dataframe by: group_fields + dose_field + time_field
+This ensures that for each unique combination of:
+- Experimental group (e.g., Species, Condition, etc.)
+- Dose
+- Timepoint
+
+For each of these combinations, we calculate:
+- mean_od → the average OD value across replicates
+- std_od → standard deviation of OD across replicates
+- count → number of replicates (useful to identify groups with only a single measurement, where std_od cannot be calculated)
+
+### Grouping by Timepoint
+Once replicate-level aggregation is complete, we regroup the data by:
+- group_fields + time_field
+This allows the function to evaluate each timepoint independently for every experimental group, considering how the OD values vary across doses within that timepoint.
+Essentially, we’re now comparing dose–response behavior over time to identify the most optimal timepoint.
+
+Now for each of the group
+
+#### Metric 1: SNR
+The reason is that SNR (signal-to-noise ratio) is calculated for each timepoint across all doses.
+- Max(Mean OD) → maximum mean OD across all doses at this timepoint
+- Min(Mean OD) → minimum mean OD across all doses at this timepoint
+- Average SD → mean of std_od across all doses at this timepoint
+
+This metric tells us how well the dose-response separates the signal from noise at each timepoint.
+
+#### Metric 2: Correlation
+At each timepoint, we want to know: Do OD values change monotonically with dose? 
+Monotonically means consistently, either always increasing or always decreasing, with no reversal. That’s exactly what Spearman’s rank correlation coefficient (ρ) measures. We take absolute value because we only care about the strength of the dose-response relationship, not whether OD increases or decreases with dose.
+
+#### Metric 3: Coefficient of Variation
+It tells you how large the standard deviation is relative to the mean — basically, how noisy your data is compared to its signal strength.
+
+The function takes the average of all CVs across doses for each timepoint. So, it summarizes how variable (noisy) the dose-response measurements are, overall, at that timepoint. 
+- Low CV means replicates are consistent and there is less noise. 
+- High CV means replicates vary a lot and there is high noise.
+
+#### Metric 4: Dynamic range
+Dynamic range measures how big the signal spread is between the lowest and highest mean OD values across all doses — at a given timepoint.
+Dynamic Range (DR) is simply: max(Mean OD)−min(Mean OD). In other words, we are measuring how far apart the highest and lowest mean responses are at that timepoint.
+
+Typically:
+- At early timepoints, cells or reactions may not have responded much → small dynamic range.
+- At late timepoints, the response might plateau or saturate → again small dynamic range.
+- Somewhere in between, you often find a peak dynamic range — that’s usually the optimal timepoint for DRC modelling.
+
+That’s the point where the response is strong enough to differentiate doses, But not yet saturated, and variability (noise) is still manageable.
+
+#### Metric 5: Smoothness
+The smoothness metric captures how consistent and gradual the dose–response curve is.
+- It computes the difference between consecutive mean OD values (based on dose order).
+- Takes the absolute value of each change — ignoring direction (up or down).
+- Averages those differences to get the average magnitude of change between doses.
+
+Smaller smoothness values mean a cleaner, more biologically meaningful dose-response curve. It’s more of a sanity check that's why this metric has the lowest weight. 
+
+
+### Implementation notes:
+> group_info is a dictionary containing the group identifiers (group_fields + time_field)
+**group_info unpacks the dictionary so it can be merged with the calculated SNR into a single dictionary row. All SNR results are appended to a list and then converted into a dataframe for further processing
+
+> If count = 1, standard deviation (std_od) is NaN. This is expected because you cannot calculate SD with a single value.
+
+> For those rows where standard deviation was NaN, the CV would also be NaN. This is also expected.
+
+
+
+
