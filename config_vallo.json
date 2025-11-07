@@ -3,5 +3,7 @@
     "group_fields": ["Species"],
     "dose_field": "uM",
     "od_field": "RawOD",
-    "time_field": "Time_h"
+    "time_field": "Time_h",
+	"standardize_method": "minmax",
+	"export_results": false
   }

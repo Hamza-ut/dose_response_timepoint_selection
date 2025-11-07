@@ -3,5 +3,7 @@
     "group_fields": ["Condition", "Ratio", "Plate"],
     "dose_field": "XMIC",
     "od_field": "Raw_od",
-    "time_field": "hour"
+    "time_field": "hour",
+	"standardize_method": "minmax",
+	"export_results": false
   }
