@@ -1,11 +1,79 @@
 ## DEPENDENCIES
-import sys
-import json
-import timeit
-import numpy as np
-import pandas as pd
-from scipy import stats
-from pathlib import Path
+from venv import logger
+
+
+try:
+    import sys
+    import json
+    import timeit
+    import logging
+    import numpy as np
+    import pandas as pd
+    from scipy import stats
+    from pathlib import Path
+    from datetime import datetime
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
+except ModuleNotFoundError as e:
+    missing_module = e.name
+    print(f"❌ Required module not found: '{missing_module}'.")
+    sys.exit(1)
+except ImportError as e:
+    # For C-extension or version issues
+    print(f"❌ ImportError: {e}")
+    print("   This may happen if the package is partially installed or incompatible.")
+    sys.exit(1)
+
+
+## LOGGING SETUP
+# log file name setter
+def get_default_log_filename(log_name=None):
+    script_dir = Path(__file__).resolve().parent
+    if not log_name:
+        log_name = f"log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    return script_dir / log_name
+
+
+# Logger setup
+def setup_logger(name=__name__, log_file=None, log_to_file=False):
+    if log_file is None:
+        log_file = get_default_log_filename()
+
+    # Create logger (either creates a new logger or returns an existing one with that name.)
+    logger = logging.getLogger(name)
+    # This logger will handle all messages from DEBUG and above (DEBUG < INFO < WARNING < ERROR < CRITICAL)
+    logger.setLevel(logging.DEBUG)
+
+    # log message formatting for both console and file (timestamp, name, log level, your log message, line number where log was called, filename of the script)
+    long_formatter = logging.Formatter(
+        "%(asctime)s: %(name)s: %(levelname)s: %(message)s: Line:%(lineno)d: [%(filename)s]",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    short_formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+    # Console handler (always active) to send logs to stdout
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(short_formatter)
+    # Only INFO and higher are shown in console, DEBUG is silent
+    console_handler.setLevel(logging.INFO)
+
+    # Avoid adding multiple handlers
+    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+        logger.addHandler(console_handler)
+
+    # Optional file handler
+    if log_to_file:
+        if log_file is None:
+            log_file = get_default_log_filename()
+        file_handler = logging.FileHandler(str(log_file), mode="w", encoding="utf-8")
+        file_handler.setFormatter(long_formatter)
+        file_handler.setLevel(logging.DEBUG)
+        if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
+            logger.addHandler(file_handler)
+
+    return logger
 
 
 ## FUNCTIONS
@@ -35,72 +103,70 @@ def load_config(config_path):
     ]
     missing = [key for key in required_keys if key not in config]
     if missing:
-        raise KeyError(f"Missing keys in config: {missing}")
+        raise KeyError(f"Missing key(s) in config: {missing}")
 
     return config
 
 
 # CSV Reader
 def read_csv_file(file_path):
-    """Reads a CSV file and returns a DataFrame."""
+    """Reads a CSV file and returns a DataFrame with robust error handling."""
     file_path = Path(file_path)
-    # check1: path exists
+    # Check 1: file exists
     if not file_path.exists():
-        raise FileNotFoundError(f"File '{file_path}' does not exist.")
-    # check2: only csv files are allowed
+        raise FileNotFoundError(
+            f"File '{file_path}' does not exist. Check your config file for the correct path."
+        )
+    # Check 2: only CSV allowed
     if file_path.suffix.lower() != ".csv":
-        raise ValueError("Input file must be a .csv file.")
-    # check3: robust pandas parsing and empty file check
+        raise ValueError(
+            f"Only .csv files are allowed: '{file_path.name}' not a CSV file."
+        )
+    # Try reading CSV with robust error handling
     try:
-        # Try normal read first
         df = pd.read_csv(file_path)
-        return df
+    except pd.errors.EmptyDataError:
+        raise ValueError(f"CSV file '{file_path}' is empty.")
     except pd.errors.ParserError as e:
-        # Often caused by bad delimiters or malformed lines
         raise ValueError(
             f"Failed to parse CSV file '{file_path}': {e}. "
             "Possible causes: bad delimiter, inconsistent columns, or malformed data."
         )
-        # catching error for empty csv file
-    except pd.errors.EmptyDataError:
-        raise ValueError(f"CSV file '{file_path}' is empty.")
-
     except Exception as e:
-        raise ValueError(f"Unexpected error while reading CSV '{file_path}': {e}")
+        raise ValueError(f"CSV Reader Error for file '{file_path}': {e}")
+    # Check 3: empty DataFrame after reading
+    if df.empty:
+        raise ValueError(f"CSV file '{file_path}' contains no data.")
+
+    return df
 
 
-# Columns validator
-def validate_columns(df, required_columns):
-    """Validates that all required columns are present in the DataFrame."""
+# Columns matcher
+def match_columns(df, required_columns):
+    """Matches required columns with those in the DataFrame."""
     df_columns = [col.strip().lower() for col in df.columns]
     missing = [col for col in required_columns if col.lower() not in df_columns]
     if missing:
         raise ValueError(
-            "Please ensure that your CSV file includes all columns listed in your json config file. \n"
-            f"Missing required columns from the CSV: {missing}. \n"
-            f"CSV columns found: {list(df.columns)}."
+            "CSV file is missing required column(s) as specified in the config file. \n"
+            f"Missing required column(s) from the CSV: {missing}. \n"
         )
 
 
-# Numeric columns validator
+# Columns validator
 def validate_numeric_columns(df, numeric_columns):
-    """Validates that specified columns contain only numeric values.
-
-    Raises informative errors if non-numeric or NaN values are found.
-    """
+    """Validates that specified columns contain only numeric values.Raises informative errors if non-numeric or NaN values are found."""
     for col in numeric_columns:
         if col not in df.columns:
             raise KeyError(f"Column '{col}' not found in DataFrame.")
 
         series = df[col]
-
         # Check for NaNs
         if series.isna().any():
             raise ValueError(
                 f"Column '{col}' contains NaN values. "
-                "Please clean or fill missing data before analysis."
+                "Please clean or fill missing data."
             )
-
         # Check for non-numeric values
         if not pd.api.types.is_numeric_dtype(series):
             coerced = pd.to_numeric(series, errors="coerce")
@@ -117,41 +183,45 @@ def validate_numeric_columns(df, numeric_columns):
                 )
 
 
-# Standardize OD values
 def standardize_od(df, od_field, method="minmax"):
-    """Standardize OD values using z-score or min-max normalization.
-
-    Fails gracefully if:
-        - The column doesn't exist.
-        - The column contains NaNs or non-numeric values.
-        - The column has no variance.
     """
-    # check1: column must exist
+    Standardize OD values using sklearn scalers (z-score or min-max).
+    Parameters
+    ----------
+    df : pandas.DataFrame. Input dataframe containing OD readings.
+    od_field : str. Column name of OD values to standardize.
+    method : {'zscore', 'minmax'}, optional (default 'minmax').
+    Returns
+    -------
+    pandas.Series with Standardized OD values.
+    """
+    # check 1: od_field exists
     if od_field not in df.columns:
         raise KeyError(f"Column '{od_field}' not found in dataframe.")
-
     series = df[od_field]
-    # check2: missing values
+    # check 2: od_field must be numeric, non-NaN and have variance
+    if not pd.api.types.is_numeric_dtype(series):
+        raise TypeError(f"Column '{od_field}' must be numeric for standardization.")
     if series.isna().any():
         raise ValueError(
-            f"Column '{od_field}' contains NaN values. "
-            "Please clean or fill missing data before standardization."
+            f"Column '{od_field}' contains NaN values. Please clean data first."
         )
-    # check3: ensure variance
     if series.nunique() <= 1:
-        raise ValueError(
-            f"Cannot standardize '{od_field}': all values are identical (no variance)."
-        )
-
-    # perform standardization
+        raise ValueError(f"Cannot standardize '{od_field}': all values are identical.")
+    # Choose scaler
     if method == "zscore":
-        return (series - series.mean()) / series.std(ddof=0)
+        scaler = StandardScaler()
     elif method == "minmax":
-        return (series - series.min()) / (series.max() - series.min())
+        scaler = MinMaxScaler()
     else:
         raise ValueError(
-            f"Invalid standardization method '{method}'. Use 'zscore' or 'minmax'."
+            "Invalid standardization method: choose 'zscore' or 'minmax'. Check your config file for typo."
         )
+    # sklearn expects a 2D array
+    scaled = scaler.fit_transform(series.to_frame())
+    return pd.Series(
+        scaled.flatten(), index=series.index, name=f"{od_field}_standardized"
+    )
 
 
 # Core function to compute metrics
@@ -159,12 +229,11 @@ def compute_metrics(df, group_fields, dose_field, time_field, od_field):
     """
     Compute SNR, correlation, CV, dynamic range, smoothness for each group/time.
     Parameters:
-        df (pd.DataFrame): Input dataframe (OD column already validated/standardized)
+        df (pd.DataFrame): Input dataframe
         group_fields (list of str): Columns to group by (e.g., ['Species'])
         dose_field (str): Column name for dose
         time_field (str): Column name for time
         od_field (str): Column name for OD values
-
     Returns:
         pd.DataFrame: Each row is a group/timepoint with all metrics computed
     """
@@ -174,12 +243,10 @@ def compute_metrics(df, group_fields, dose_field, time_field, od_field):
         .agg(mean_od="mean", std_od="std", count="count")
         .reset_index()
     )
-
     # Grouping by timepoint
     results = []
     for name, group in grouped.groupby(group_fields + [time_field]):
         group_info = dict(zip(group_fields + [time_field], name))
-
         # 1. SNR (signal / noise)
         max_signal = group["mean_od"].max() - group["mean_od"].min()
         avg_noise = group["std_od"].mean()
@@ -198,7 +265,7 @@ def compute_metrics(df, group_fields, dose_field, time_field, od_field):
         )
         # 5. Smoothness (mean absolute difference between successive doses)
         smoothness = np.abs(np.diff(group["mean_od"])).mean()
-
+        # zip all metrics together
         results.append(
             {
                 **group_info,
@@ -209,13 +276,13 @@ def compute_metrics(df, group_fields, dose_field, time_field, od_field):
                 "smoothness": smoothness,
             }
         )
-
-    metrics_df = pd.DataFrame(results)
-    return metrics_df
+    # Convert results to DataFrame
+    results_df = pd.DataFrame(results)
+    return results_df
 
 
 # Normalize metrics to compute composite score
-def normalize_and_weight(df, weights):
+def compute_composite_score(df, weights):
     """Normalizes metrics and applies weights to compute composite score."""
     # apply min max normalization to the resultant metrics to make it all homogenous.
     for metric, weight in weights.items():
@@ -223,7 +290,7 @@ def normalize_and_weight(df, weights):
         df[col_norm] = (df[metric] - df[metric].min()) / (
             df[metric].max() - df[metric].min()
         )
-        # since lower CV is better so that's why we gave negative weight to use it to flip the results
+        # since lower CV and smoothness is better so that's why we gave negative weight to use it to flip the results
         if weight < 0:
             # This flip makes every normalized metric’s direction the same
             df[col_norm] = 1 - df[col_norm]
@@ -233,86 +300,52 @@ def normalize_and_weight(df, weights):
     return df
 
 
-# Select best timepoint per group
-def get_best_timepoints(df, group_fields, time_field):
-    """Select best timepoint per group."""
+# Select optimal timepoint per group
+def select_optimal_timepoint(df, group_fields):
+    """Select optimal timepoint per group."""
     # returns the index of the row with the maximum value in each group.
     idx = df.groupby(group_fields)["composite_score"].idxmax()
     # selects rows by index labels and return that
     return df.loc[idx].reset_index(drop=True)
 
 
-def timepoint_composite_score(
-    df,
-    group_fields,
-    dose_field,
-    od_field,
-    time_field,
-    standardize=False,
-    method="minmax",
-):
-    """Determine best timepoint using composite scoring of multiple metrics."""
-    # Standardize OD values using standardize_od function
-    if standardize:
-        df[od_field] = standardize_od(df, od_field, method)
-
-    # Compute metrics for each group/timepoint
-    metrics_df = compute_metrics(df, group_fields, dose_field, time_field, od_field)
-
-    # hamza old weights dictionary
-    # weights = {
-    #     "snr": 0.3,
-    #     "correlation": 0.3,
-    #     "cv": -0.2,  # Negative because lower is better and we can invert the normalization results
-    #     "dynamic_range": 0.1,
-    #     "smoothness": 0.1,
-    # }
-
-    # Weights dictionary, Order of priority according to research articles [SNR, Correlation, CV, Dynamic range, smoothness]
+def main():
+    """
+    Main entry point for the dose-response analysis program.
+    Accepts a JSON config file as a command-line argument and computes
+    the optimal timepoint using composite scoring of multiple metrics.
+    """
+    # Weights dictionary, Order of priority : [SNR, Correlation, CV, Dynamic range, smoothness] as found in research/literature
     weights = {
         "snr": 0.35,
         "correlation": 0.30,
         "cv": -0.20,  # Negative because lower is better and we can invert the normalization results
         "dynamic_range": 0.10,
-        "smoothness": -0.05,
+        "smoothness": -0.05,  # Negative because lower is better
     }
 
-    # Normalize metrics and compute composite score
-    normalized_metrics_df = normalize_and_weight(metrics_df, weights)
-
-    # Select best timepoint per group
-    best_timepoint_df = get_best_timepoints(
-        normalized_metrics_df, group_fields, time_field
-    )
-
-    # optional export to csv
-    # best_timepoint_df.to_csv("best_timepoints_composite_score.csv", index=False)
-    return best_timepoint_df
-
-
-def main():
-    """
-    Main entry point for the dose-response analysis program.
-    Accepts a JSON config file as a command-line argument and computes
-    the best timepoint using composite scoring of multiple metrics.
-    """
+    # Setup logger to log to console only
+    logger = setup_logger(log_to_file=False)
 
     # ----------------------------
     # 1. Parse and validate CLI args
     # ----------------------------
     if len(sys.argv) < 2:
-        print("Usage: python your_script_name.py <config_file.json>")
+        logger.error(
+            "Usage: python <drc_timepoint_composite_score.py> <path/to/config_file.json>"
+        )
         sys.exit(1)
 
     config_file = Path(sys.argv[1])
-    print(f"\n🔧 Using configuration file: {config_file}")
+
+    logger.info(f"🔧 Loading config file: {config_file} \n")
 
     try:
         # ----------------------------
         # 2. Load and validate config
         # ----------------------------
         config = load_config(config_file)
-        print("✅ Configuration loaded successfully.\n")
+        logger.info("✅ Success: configuration loaded.\n")
 
         # Extract values from config
         FILE_PATH_STR = config["file_path"]
@@ -320,52 +353,87 @@ def main():
         DOSE_FIELD = config["dose_field"]
         OD_FIELD = config["od_field"]
         TIME_FIELD = config["time_field"]
+        STANDARDIZE_METHOD = config.get(
+            "standardize_method", "minmax"
+        )  # default to minmax
+        EXPORT_RESULTS = config.get("export_results", False)  # default to False
 
         # ----------------------------
         # 3. Read CSV file
         # ----------------------------
-        print(f"📄 Reading data file: {FILE_PATH_STR}. \n")
+        logger.info(f"📄 Reading data file: {FILE_PATH_STR}. \n")
         df = read_csv_file(FILE_PATH_STR)
 
         # ----------------------------
-        # 4. Validate CSV columns
+        # 4. Validate required columns
         # ----------------------------
         required_columns = GROUP_FIELDS + [DOSE_FIELD, OD_FIELD, TIME_FIELD]
-        validate_columns(df, required_columns)
-        print("✅ CSV columns validated.\n")
+        match_columns(df, required_columns)
+        logger.info(
+            "✅ Success: CSV columns match those specified in the JSON config.\n"
+        )
 
         # ----------------------------
         # 5. Validate numeric columns (dose & OD)
         validate_numeric_columns(df, [DOSE_FIELD, OD_FIELD])
-        print("✅ Dose and OD columns are numeric.\n")
+        logger.info(
+            "✅ Success: 'Dose' and 'OD' columns contain valid numeric data & no missing values.\n"
+        )
 
         # ----------------------------
         # 6. Benchmark and run analysis
         # ----------------------------
         start = timeit.default_timer()
-        print("🚀 Running composite score analysis...\n")
+        logger.info("🚀 Starting composite score analysis...\n")
 
-        best_timepoints = timepoint_composite_score(
-            df=df,
-            group_fields=GROUP_FIELDS,
-            dose_field=DOSE_FIELD,
-            od_field=OD_FIELD,
-            time_field=TIME_FIELD,
-            standardize=True,
-            method="minmax",
+        # 6.1: Standardize OD values
+        df[f"{OD_FIELD}_std"] = standardize_od(df, OD_FIELD, method=STANDARDIZE_METHOD)
+        logger.info("🔄 OD values standardized using %s method.", STANDARDIZE_METHOD)
+
+        # 6.2: Compute metrics for each group/timepoint, make sure to use standardized OD field
+        metrics_df = compute_metrics(
+            df, GROUP_FIELDS, DOSE_FIELD, TIME_FIELD, f"{OD_FIELD}_std"
         )
+        logger.info("🧮 Metrics computed for all group/timepoints.")
+
+        # 6.3: Normalize metrics to compute composite score
+        normalized_metrics_df = compute_composite_score(metrics_df, weights)
+        logger.info("📊 Composite scores computed for all group/timepoints. \n")
+
+        # 6.4: Determine optimal timepoint using composite score
+        best_timepoint_df = select_optimal_timepoint(
+            normalized_metrics_df, GROUP_FIELDS
+        )
+
+        # Optional: export to csv
+        if EXPORT_RESULTS:
+            input_path = Path(FILE_PATH_STR)
+            # Default timestamped filename in same folder as input CSV
+            output_file = (
+                input_path.parent
+                / f"{input_path.stem}_composite_score_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            )
+            best_timepoint_df.to_csv(output_file, index=False)
+            logger.info(f"💾 Result exported to CSV: {output_file}. \n")
+        else:
+            logger.info(
+                "📌 Export to CSV not requested. Results available only in console. \n"
+            )
+
+        logger.info("🔔 Composite score analysis completed.\n")
 
         # ----------------------------
         # 7. Display and summarize results
         # ----------------------------
-        print("🎯 Best Timepoints (composite score):")
-        print(best_timepoints, "\n")
+        logger.info(
+            "🎯 Result: Best Timepoints (composite score):\n%s\n", best_timepoint_df
+        )
 
         elapsed = round(timeit.default_timer() - start, 2)
-        print(f"⏱️  Program finished in {elapsed} seconds.\n")
+        logger.info(f"🕐 Program finished in {elapsed} seconds.\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\n❌ Error: %s", e)
         sys.exit(1)
 
 
