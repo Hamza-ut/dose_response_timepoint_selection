@@ -31,25 +31,33 @@ Example config.json:
   "group_fields": ["Species"],
   "dose_field": "Dose",
   "od_field": "RawOD",
-  "time_field": "Time"
+  "time_field": "Time",
+  "standardize_method": "minmax",
+  "export_results": true
 }
 ```
 **Explanation of keys:**
-- file_path: Path to your CSV file
-- group_fields: List of column(s) for grouping (even if single column, it must be in a list)
-- dose_field: Column representing numeric dose
-- od_field: Column representing raw optical density
-- time_field: Column representing timepoints
+- file_path: Path to your CSV file containing raw OD measurements.
+- group_fields: List of column(s) to group by. Even if it’s a single column, it must be in a list.
+- dose_field: Column representing numeric dose or concentration.
+- od_field: Column representing raw optical density (OD) measurements.
+- time_field: Column representing measurement timepoints.
+- standardize_method (optional): How OD values are standardized:
+  - "minmax" (default): Scales values between 0 and 1.
+  - "zscore": Standardizes values to have mean 0 and standard deviation 1.
+- export_results (optional): It must be a boolean value only
+  - true : Save results as CSV in the same folder as input file.
+  - false : Display results only in console.
 
 
 
 ### ⚠️ Validation Rules
-1. JSON config file must be of valid JSON format and contain all required keys.
-2. CSV must contain all the columns (exactly matching) you specified in your config file.
-3. dose_field and od_field must be numeric.
-4. OD values are standardized automatically; do not give pre-transform data as od_field. OD values should be in raw form.
-
-
+1. JSON config file must be of valid JSON format and contain all mandatory keys.
+2. standardize_method is optional; if omitted, "minmax" standardization is applied by default.
+3. CSV must contain all the columns (exactly matching) you specified in your config file.
+4. dose_field and od_field must be numeric.
+5. OD values should be raw measurements; the program standardizes them automatically.
+6. If export_results is true in config, results will be saved as csv in the same folder as the input CSV.
 
 ### 📊 Results
 The script has been tested on two datasets:
