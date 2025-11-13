@@ -1,7 +1,4 @@
 ## DEPENDENCIES
-from venv import logger
-
-
 try:
     import sys
     import json
@@ -237,13 +234,13 @@ def compute_metrics(df, group_fields, dose_field, time_field, od_field):
     Returns:
         pd.DataFrame: Each row is a group/timepoint with all metrics computed
     """
-    # Initial grouping to aggregate rawOD for all replicates
+    # Initial grouping to aggregate rawOD for all replicates (group by group_fields + dose + time → computes mean and std for each replicate set)
     grouped = (
         df.groupby(group_fields + [dose_field, time_field])[od_field]
         .agg(mean_od="mean", std_od="std", count="count")
         .reset_index()
     )
-    # Grouping by timepoint
+    # Grouping by timepoint (loop over timepoints within each group)
     results = []
     for name, group in grouped.groupby(group_fields + [time_field]):
         group_info = dict(zip(group_fields + [time_field], name))
@@ -263,8 +260,19 @@ def compute_metrics(df, group_fields, dose_field, time_field, od_field):
             if group["mean_od"].min() != 0
             else 0
         )
-        # 5. Smoothness (mean absolute difference between successive doses)
-        smoothness = np.abs(np.diff(group["mean_od"])).mean()
+        # 5. Smoothness (mean absolute difference between successive doses). It is standard in dose–response analysis, often called “slope consistency” or “smoothness metric.
+        n_doses = len(group["mean_od"])
+        # number of interval
+        n_intervals = n_doses - 1
+        # 0.5 is half the normalized range of OD (assuming OD is scaled 0–1). Dividing by intervals gives ideal size of jump per step
+        optimal = 0.5 / (n_intervals)
+        # Tolerance value controls how quickly the score drops off as you move away from the optimal MAD.
+        tolerance = 0.1
+        # Measure how much the curve jumps between consecutive doses, on average.
+        mad = np.abs(np.diff(group["mean_od"])).mean()
+        # Gaussian-like mapping of MAD to 0–1. When MAD == optimal, smoothness = 1. As MAD deviates from optimal, smoothness decreases.
+        smoothness = np.exp(-((mad - optimal) ** 2) / (2 * (tolerance**2)))
+
         # zip all metrics together
         results.append(
             {
@@ -321,7 +329,7 @@ def main():
         "correlation": 0.30,
         "cv": -0.20,  # Negative because lower is better and we can invert the normalization results
         "dynamic_range": 0.10,
-        "smoothness": -0.05,  # Negative because lower is better
+        "smoothness": 0.05,  # Negative because lower is better
     }
 
     # Setup logger to log to console only
@@ -332,7 +340,7 @@ def main():
     # ----------------------------
     if len(sys.argv) < 2:
         logger.error(
-            "Usage: python <drc_timepoint_composite_score.py> <path/to/config_file.json>"
+            "HowToRun: python <drc_timepoint_composite_score.py> <path/to/config_file.json>"
         )
         sys.exit(1)
 
