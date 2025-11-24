@@ -9,6 +9,7 @@ try:
     from scipy import stats
     from pathlib import Path
     from datetime import datetime
+    from typing import Literal, List, Dict
     from sklearn.preprocessing import StandardScaler, MinMaxScaler
 except ModuleNotFoundError as e:
     missing_module = e.name
@@ -23,15 +24,35 @@ except ImportError as e:
 
 ## LOGGING SETUP
 # log file name setter
-def get_default_log_filename(log_name=None):
-    script_dir = Path(__file__).resolve().parent
+def get_default_log_filename(log_name: str | None = None) -> Path:
+    """
+    Helper function to setup_logger(), for making log file name with datetimestamp.
+    """
+    # Get script directory as default log location
+    input_dir = Path(__file__).resolve().parent
+    # If no log name provided, create one with timestamp
     if not log_name:
         log_name = f"log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    return script_dir / log_name
+    return input_dir / log_name
 
 
 # Logger setup
-def setup_logger(name=__name__, log_file=None, log_to_file=False):
+def setup_logger(
+    name: str = __name__, log_file: str | Path | None = None, log_to_file: bool = False
+) -> logging.Logger:
+    """
+    Configure and return a logger.
+
+    :param name: Logger name.
+    :type name: str
+    :param log_file: Path to log file.
+    :type log_file: str or Path or None
+    :param log_to_file: Whether to write logs to file.
+    :type log_to_file: bool
+    :returns: Configured logger instance.
+    :rtype: logging.Logger
+    """
+    # Default log file name if none provided
     if log_file is None:
         log_file = get_default_log_filename()
 
@@ -40,12 +61,13 @@ def setup_logger(name=__name__, log_file=None, log_to_file=False):
     # This logger will handle all messages from DEBUG and above (DEBUG < INFO < WARNING < ERROR < CRITICAL)
     logger.setLevel(logging.DEBUG)
 
-    # log message formatting for both console and file (timestamp, name, log level, your log message, line number where log was called, filename of the script)
+    # long format for console and file (timestamp, __name__, log level, your log message, line number where log was called, filename of the script)
     long_formatter = logging.Formatter(
         "%(asctime)s: %(name)s: %(levelname)s: %(message)s: Line:%(lineno)d: [%(filename)s]",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+    # Shorter format for console output only (timestamp, log level, your log message)
     short_formatter = logging.Formatter(
         "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
@@ -75,8 +97,10 @@ def setup_logger(name=__name__, log_file=None, log_to_file=False):
 
 ## FUNCTIONS
 # JSON config file loader
-def load_config(config_path):
-    """Loads and validates the JSON config file."""
+def load_config(config_path: str | Path) -> dict:
+    """
+    Load and validate a JSON configuration file which should contain necessary keys.
+    """
     config_path = Path(config_path)
     # check1: valid file path must exist
     if not config_path.exists():
@@ -106,8 +130,17 @@ def load_config(config_path):
 
 
 # CSV Reader
-def read_csv_file(file_path):
-    """Reads a CSV file and returns a DataFrame with robust error handling."""
+def read_csv_file(file_path: str | Path) -> pd.DataFrame:
+    """
+    Read a CSV file and create pandas df.
+
+    :param file_path: Path to the CSV file.
+    :type file_path: str or Path
+    :returns: Loaded DataFrame.
+    :rtype: pandas.DataFrame
+    :raises FileNotFoundError: If file is missing.
+    :raises ValueError: If file is empty or malformed.
+    """
     file_path = Path(file_path)
     # Check 1: file exists
     if not file_path.exists():
@@ -139,8 +172,16 @@ def read_csv_file(file_path):
 
 
 # Columns matcher
-def match_columns(df, required_columns):
-    """Matches required columns with those in the DataFrame."""
+def match_columns(df: pd.DataFrame, required_columns: list[str]) -> None:
+    """
+    Ensure required columns exist in the DataFrame.
+
+    :param df: Input DataFrame.
+    :type df: pandas.DataFrame
+    :param required_columns: Columns that must exist.
+    :type required_columns: list[str]
+    :raises ValueError: If required columns are missing.
+    """
     df_columns = [col.strip().lower() for col in df.columns]
     missing = [col for col in required_columns if col.lower() not in df_columns]
     if missing:
@@ -151,8 +192,18 @@ def match_columns(df, required_columns):
 
 
 # Columns validator
-def validate_numeric_columns(df, numeric_columns):
-    """Validates that specified columns contain only numeric values.Raises informative errors if non-numeric or NaN values are found."""
+def validate_numeric_columns(df: pd.DataFrame, numeric_columns: list[str]) -> None:
+    """
+    Validate numeric columns for non-numeric or missing data.
+
+    :param df: Input DataFrame.
+    :type df: pandas.DataFrame
+    :param numeric_columns: Columns expected to contain numeric data.
+    :type numeric_columns: list[str]
+    :raises KeyError: If column is missing.
+    :raises TypeError: If non-numeric values are detected.
+    :raises ValueError: If NaN values are present.
+    """
     for col in numeric_columns:
         if col not in df.columns:
             raise KeyError(f"Column '{col}' not found in DataFrame.")
@@ -180,17 +231,22 @@ def validate_numeric_columns(df, numeric_columns):
                 )
 
 
-def standardize_od(df, od_field, method="minmax"):
+# Standardize OD values, can be used as standalone function elsewhere
+def standardize_od(
+    df: pd.DataFrame, od_field: str, method: Literal["zscore", "minmax"] = "minmax"
+) -> pd.Series:
     """
-    Standardize OD values using sklearn scalers (z-score or min-max).
-    Parameters
-    ----------
-    df : pandas.DataFrame. Input dataframe containing OD readings.
-    od_field : str. Column name of OD values to standardize.
-    method : {'zscore', 'minmax'}, optional (default 'minmax').
-    Returns
-    -------
-    pandas.Series with Standardized OD values.
+    Standardize OD values .
+
+    :param df: Input DataFrame.
+    :type df: pandas.DataFrame
+    :param od_field: Column containing OD values.
+    :type od_field: str
+    :param method: Standardization method.
+    :type method: Literal["zscore", "minmax"]
+    :returns: Standardized OD series.
+    :rtype: pandas.Series
+    :raises ValueError: For invalid method or bad data.
     """
     # check 1: od_field exists
     if od_field not in df.columns:
@@ -222,17 +278,28 @@ def standardize_od(df, od_field, method="minmax"):
 
 
 # Core function to compute metrics
-def compute_metrics(df, group_fields, dose_field, time_field, od_field):
+def compute_metrics(
+    df: pd.DataFrame,
+    group_fields: List[str],
+    dose_field: str,
+    time_field: str,
+    od_field: str,
+) -> pd.DataFrame:
     """
-    Compute SNR, correlation, CV, dynamic range, smoothness for each group/time.
-    Parameters:
-        df (pd.DataFrame): Input dataframe
-        group_fields (list of str): Columns to group by (e.g., ['Species'])
-        dose_field (str): Column name for dose
-        time_field (str): Column name for time
-        od_field (str): Column name for OD values
-    Returns:
-        pd.DataFrame: Each row is a group/timepoint with all metrics computed
+    Compute SNR, correlation, CV, dynamic range, and smoothness.
+
+    :param df: Input DataFrame.
+    :type df: pandas.DataFrame
+    :param group_fields: Columns to group by.
+    :type group_fields: List[str]
+    :param dose_field: Dose column.
+    :type dose_field: str
+    :param time_field: Time column.
+    :type time_field: str
+    :param od_field: OD column.
+    :type od_field: str
+    :returns: DataFrame of computed metrics.
+    :rtype: pandas.DataFrame
     """
     # Initial grouping to aggregate rawOD for all replicates (group by group_fields + dose + time → computes mean and std for each replicate set)
     grouped = (
@@ -290,8 +357,20 @@ def compute_metrics(df, group_fields, dose_field, time_field, od_field):
 
 
 # Normalize metrics to compute composite score
-def compute_composite_score(df, weights):
-    """Normalizes metrics and applies weights to compute composite score."""
+def compute_composite_score(
+    df: pd.DataFrame, weights: Dict[str, float]
+) -> pd.DataFrame:
+    """
+    Normalize metrics and compute composite scores.
+
+    :param df: DataFrame containing metric columns.
+    :type df: pandas.DataFrame
+    :param weights: Metric weights; negative values invert normalization.
+    :type weights: Dict[str, float]
+    :returns: DataFrame with normalized metrics and composite score.
+    :rtype: pandas.DataFrame
+    :raises KeyError: If metric columns are missing.
+    """
     # apply min max normalization to the resultant metrics to make it all homogenous.
     for metric, weight in weights.items():
         col_norm = f"{metric}_norm"
@@ -309,19 +388,27 @@ def compute_composite_score(df, weights):
 
 
 # Select optimal timepoint per group
-def select_optimal_timepoint(df, group_fields):
-    """Select optimal timepoint per group."""
+def select_optimal_timepoint(df: pd.DataFrame, group_fields: List[str]) -> pd.DataFrame:
+    """
+    Select rows with maximum composite score per group.
+
+    :param df: Input DataFrame.
+    :type df: pandas.DataFrame
+    :param group_fields: Grouping columns.
+    :type group_fields: List[str]
+    :returns: Optimal rows for each group.
+    :rtype: pandas.DataFrame
+    :raises ValueError: If grouping columns are missing.
+    """
     # returns the index of the row with the maximum value in each group.
     idx = df.groupby(group_fields)["composite_score"].idxmax()
     # selects rows by index labels and return that
     return df.loc[idx].reset_index(drop=True)
 
 
-def main():
+def main() -> None:
     """
-    Main entry point for the dose-response analysis program.
-    Accepts a JSON config file as a command-line argument and computes
-    the optimal timepoint using composite scoring of multiple metrics.
+    Script entry point for dose–response analysis.
     """
     # Weights dictionary, Order of priority : [SNR, Correlation, CV, Dynamic range, smoothness] as found in research/literature
     weights = {
