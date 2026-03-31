@@ -2,13 +2,13 @@
 try:
     import sys
     import json
-    import timeit
     import logging
     import numpy as np
     import pandas as pd
     from scipy import stats
     from pathlib import Path
     from datetime import datetime
+    from time import perf_counter
     from typing import Literal, List, Dict
     from sklearn.preprocessing import StandardScaler, MinMaxScaler
 except ModuleNotFoundError as e:
@@ -478,7 +478,7 @@ def main() -> None:
         # ----------------------------
         # 6. Benchmark and run analysis
         # ----------------------------
-        start = timeit.default_timer()
+        start = perf_counter()
         logger.info("🚀 Starting composite score analysis...\n")
 
         # 6.1: Standardize OD values
@@ -524,7 +524,7 @@ def main() -> None:
             "🎯 Result: Best Timepoints (composite score):\n%s\n", best_timepoint_df
         )
 
-        elapsed = round(timeit.default_timer() - start, 2)
+        elapsed = round(perf_counter() - start, 3)
         logger.info(f"🕐 Program finished in {elapsed} seconds.\n")
 
     except Exception as e:
