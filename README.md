@@ -19,7 +19,7 @@ dose_response_timepoint_selection/
 ├── data/                               # Example datasets
 ├── config_sf.json                      # Example config (SF dataset)
 ├── config_vallo.json                   # Example config (Vallo dataset)
-├── timepoint_selection_legacy.ipynb    # Exploratory notebook
+├── code_testing.ipynb                  # Exploratory notebook
 ├── algorithm_explanation.md            # Algorithm documentation
 ├── key_concepts.md                     # Background / concepts
 └── requirements.txt
