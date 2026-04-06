@@ -39,13 +39,13 @@ python drc_timepoint_composite_score.py "path/to/config.json"
 
 ```json
 {
-  "file_path": "data/timepoint_vallo.csv",
-  "group_fields": ["Species"],
-  "dose_field": "Dose",
-  "od_field": "RawOD",
-  "time_field": "Time",
-  "standardize_method": "minmax",
-  "export_results": true
+    "file_path": "data/timepoint_vallo.csv",
+    "group_fields": ["Species"],
+    "dose_field": "uM",
+    "od_field": "RawOD",
+    "time_field": "Time_h",
+    "standardize_method": "minmax",
+    "export_results": false
 }
 ```
 
