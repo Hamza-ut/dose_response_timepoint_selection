@@ -8,7 +8,7 @@ Public API:
     standardize_od             — standardize OD values (zscore / minmax)
     compute_metrics            — compute SNR, correlation, CV, dynamic range, smoothness
     compute_composite_score    — normalize metrics and compute weighted composite score
-    select_optimal_timepoint   — pick the best timepoint per group
+    select_optimal_timepoint   — pick the best timepoint per group based on composite score
 """
 
 from .io import load_config, read_csv_file
