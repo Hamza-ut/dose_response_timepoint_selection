@@ -62,6 +62,7 @@ def read_csv_file(file_path: str | Path) -> pd.DataFrame:
     # Try reading CSV with robust error handling
     try:
         df = pd.read_csv(file_path)
+        df.columns = df.columns.str.strip().str.lower()
     except pd.errors.EmptyDataError:
         raise ValueError(f"CSV file '{file_path}' is empty.")
     except pd.errors.ParserError as e:
