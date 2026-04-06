@@ -1,9 +1,11 @@
 {
     "file_path": "data/timepoint_vallo.csv",
-    "group_fields": ["Species"],
+    "group_fields": [
+        "Species"
+    ],
     "dose_field": "uM",
     "od_field": "RawOD",
     "time_field": "Time_h",
-	"standardize_method": "minmax",
-	"export_results": false
-  }
+    "standardize_method": "minmax",
+    "export_results": false
+}

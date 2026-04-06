@@ -1,7 +1,7 @@
 # Dose-Response Curve (DRC) Timepoint Selection
 ## 📦 Repository Contents (Key Files)
 - `drc_timepoint_composite_score.py`: Main script for composite scoring timepoints
-- `drc_timepoint_selection.ipynb`: old prototype file
+- `timepoint_selection_legacy.ipynb`: old prototype file
 - `requirements.txt`: Required Python packages
 - `config_*.json`: Example configuration files
 - `data/*.csv`: Example datasets
