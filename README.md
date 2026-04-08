@@ -111,11 +111,11 @@ Tested on two datasets:
 
 | Dataset | Condition | Manual Timepoint | Script Timepoint | Match |
 |---------|-----------|-----------------|-----------------|-------|
-| timepoint_vallo.csv | — | 9.5 – 10.5 | 12.97 | ⚠️ close |
-| timepoint_sf.csv | SF | 6:59:35 | 38.00083 | ❌ |
-| timepoint_sf.csv | SFP | 6:59:35 | 4.99250 | ⚠️ close |
-| timepoint_sf.csv | 20MSynComm | 32:59:58 or 32:59:59 | 35.00028 | ⚠️ close |
-| timepoint_sf.csv | 20MSynComm + SF | 32:59:58 | 5.99278 | ❌ |
+| timepoint_vallo.csv | — | 9.5 – 10.5 | 12.97 | ✅ close |
+| timepoint_sf.csv | SF | 6:59:35 | 38.00083 OR 4.9925 | ⚠️ one plate is closely matching the manual timepoint selection |
+| timepoint_sf.csv | SFP | 6:59:35 | 5.99306 | ✅ close |
+| timepoint_sf.csv | 20MSynComm | 32:59:58 or 32:59:59 | 35.00028 | ⚠️ three plates closely matching the manual timepoint selection |
+| timepoint_sf.csv | 20MSynComm + SF | 32:59:58 | 38.0083 or 4.9925 | ❌ |
 | timepoint_sf.csv | 20MSynComm + SFP | 32:59:58 | 5.99306 | ❌ |
 
 - Performs well on `timepoint_vallo.csv` ✅
