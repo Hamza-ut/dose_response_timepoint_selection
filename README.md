@@ -44,20 +44,30 @@ python drc_timepoint_composite_score.py "path/to/config.json"
     "dose_field": "uM",
     "od_field": "RawOD",
     "time_field": "Time_h",
-    "standardize_method": "minmax",
+    "top_n": 3,
     "export_results": false
 }
 ```
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `file_path` | ✅ | Path to the CSV file |
-| `group_fields` | ✅ | Column(s) to group by — must be a list, even for a single column |
-| `dose_field` | ✅ | Column with numeric dose/concentration values |
-| `od_field` | ✅ | Column with raw OD measurements |
-| `time_field` | ✅ | Column with measurement timepoints |
-| `standardize_method` | ❌ | `"minmax"` (default) or `"zscore"` |
-| `export_results` | ❌ | `true` saves results as CSV next to the input file; `false` prints to console only |
+| Key            | Required | Default | Description                                                  |
+| -------------- | -------- | ------- | ------------------------------------------------------------ |
+| file_path      | ✅        | -       | Path to the input CSV file.                                  |
+| group_fields   | ✅        | -       | Column(s) to group by (e.g., `["Species"]`). Must be a list. |
+| dose_field     | ✅        | -       | Column containing numeric dose/concentration values.         |
+| od_field       | ✅        | -       | Column containing raw OD measurements.                       |
+| time_field     | ✅        | -       | Column containing measurement timepoints.                    |
+| top_n          | ❌        | 3       | Number of top-ranking timepoints to return per group.        |
+| export_results | ❌        | false   | If true, saves the final ranking as a CSV file.              |
+
+---
+
+## ⚠️ Validation Rules
+
+1. Numeric Integrity: dose_field, od_field, and time_field must contain numeric data.
+2. Automated Standardization: OD values are standardized using Group-Wise Min-Max scaling. This ensures slow-growing species are evaluated relative to their own growth potential, not global maximums.
+3. Time Bucketing: Measurements are rounded to 1 decimal place (precision 1) before analysis to collapse machine drift (seconds/minutes) into meaningful "measurement windows.
+4. Window Reporting: The "Ideal Time Window" in the output represents the $\pm 0.05h$ range around the standardized timepoint.
+5. Replicate Analysis: To calculate SNR and CV, the script requires multiple measurements per dose. Ensure your group_fields do not include the "Plate" or "Well ID" columns, or the noise-calculation math will have no replicates to compare.
 
 ---
 
@@ -80,52 +90,34 @@ from drc_timepoint import compute_metrics, standardize_od
 
 ## 🧪 Scoring Metrics
 
-Five metrics are computed per timepoint per group, normalized, and combined into a weighted composite score:
+Five metrics are computed for each timepoint per group, normalized, and combined into a weighted composite score:
 
-| Metric | Weight | Direction | Description |
-|--------|--------|-----------|-------------|
-| SNR (Signal-to-Noise Ratio) | 0.35 | higher = better | Max signal range divided by mean replicate noise |
-| Spearman Correlation | 0.30 | higher = better | Monotonicity of dose–response relationship |
-| CV (Coefficient of Variation) | 0.20 | lower = better | Replicate consistency |
-| Dynamic Range | 0.10 | higher = better | Ratio of max to min mean OD |
-| Smoothness | 0.05 | closer to optimal = better | Consistency of step size across doses |
+- SNR (0.30) & Correlation (0.30): These are "Quality of Curve" drivers.
+- CV (0.25): If replicates don't agree, the score drops fast.
+- Smoothness (0.10): Prevents "jagged" curves where one dose is an outlier.
+- Dynamic Range (0.05): A tie-breaker that favors curves with a larger vertical drop.
 
-The timepoint with the highest composite score per group is selected.
-
----
-
-## ⚠️ Validation Rules
-
-1. Config must be valid JSON and contain all mandatory keys.
-2. CSV must contain all columns specified in the config (exact name match).
-3. `dose_field` and `od_field` must be numeric with no missing values.
-4. OD values should be raw — standardization is applied automatically.
-5. `standardize_method` defaults to `"minmax"` if omitted.
-6. `export_results` must be a boolean (`true` / `false`).
+The Top N timepoints with the highest composite scores per group are selected and returned.
 
 ---
 
 ## 📊 Results
 
-Tested on two datasets:
+Currently only tested on two datasets with following results:
 
 | Dataset | Condition | Manual Timepoint | Script Timepoint | Match |
 |---------|-----------|-----------------|-----------------|-------|
-| timepoint_vallo.csv | — | 9.5 – 10.5 | 12.97 | ✅ close |
-| timepoint_sf.csv | SF | 6:59:35 | 38.00083 OR 4.9925 | ⚠️ one plate is closely matching the manual timepoint selection |
-| timepoint_sf.csv | SFP | 6:59:35 | 5.99306 | ✅ close |
-| timepoint_sf.csv | 20MSynComm | 32:59:58 or 32:59:59 | 35.00028 | ⚠️ three plates closely matching the manual timepoint selection |
-| timepoint_sf.csv | 20MSynComm + SF | 32:59:58 | 38.0083 or 4.9925 | ❌ |
-| timepoint_sf.csv | 20MSynComm + SFP | 32:59:58 | 5.99306 | ❌ |
-
-- Performs well on `timepoint_vallo.csv` ✅
-- Shows inconsistent results on `timepoint_sf.csv` ❌ — further testing needed before general use.
+| timepoint_vallo.csv | — | 9.5 – 10.5 | 12.95 – 13.05 | ❌ Significant Deviation |
+| timepoint_sf.csv | SF | 6:59:35 | 4.95 – 6.05 | ⚠️ close |
+| timepoint_sf.csv | SFP | 6:59:35 | 4.95 – 6.05 | ⚠️ close |
+| timepoint_sf.csv | 20MSynComm | 32:59:58/32:59:59 | 32.95 – 33.05 | ✅ Match |
+| timepoint_sf.csv | 20MSynComm + SF | 32:59:58 | 30.95 – 31.05 | ⚠️ close |
+| timepoint_sf.csv | 20MSynComm + SFP | 32:59:58 | 30.95 – 31.05 | ⚠️ close |
 
 ---
 
 ## 🔭 Future Improvements
 
 - More testing across datasets
-- Consider replacing SNR with a z-factor-like metric (better supported in literature)
+- Replacing SNR with a z-factor-like metric (better supported in literature)
 - Smoothness metric currently has very low weight — may be dropped entirely
-- Investigate poor performance on `timepoint_sf.csv`
