@@ -1,9 +1,12 @@
 {
     "file_path": "data/timepoint_sf.csv",
-    "group_fields": ["Condition", "Ratio", "Plate"],
+    "group_fields": [
+        "Condition",
+        "Ratio"
+    ],
     "dose_field": "XMIC",
     "od_field": "Raw_od",
     "time_field": "hour",
-	"standardize_method": "minmax",
-	"export_results": false
-  }
+    "top_n": 2,
+    "export_results": false
+}

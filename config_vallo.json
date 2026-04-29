@@ -6,6 +6,6 @@
     "dose_field": "uM",
     "od_field": "RawOD",
     "time_field": "Time_h",
-    "standardize_method": "minmax",
+    "top_n": 2,
     "export_results": false
 }
