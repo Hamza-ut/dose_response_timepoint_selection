@@ -9,19 +9,19 @@ def load_config(config_path: str | Path) -> dict:
     Load and validate a JSON configuration file which should contain necessary keys.
     """
     config_path = Path(config_path)
-    # check1: valid file path must exist
+    # Check1: valid file path must exist
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
-    # check2: only json files are allowed
+    # Check2: only json files are allowed
     if config_path.suffix.lower() != ".json":
         raise ValueError(f"Config file must be a JSON file: {config_path}")
-    # check3: json formatting should not be off
+    # Check3: json formatting should not be off
     try:
         with open(config_path, "r", encoding="utf-8") as file:
             config = json.load(file)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON format in config file: {e}")
-    # check4: json file must have the following keys, not any random json
+    # Check4: json file must have the following keys, not any random json
     required_keys = [
         "file_path",
         "group_fields",
@@ -41,12 +41,8 @@ def read_csv_file(file_path: str | Path) -> pd.DataFrame:
     """
     Read a CSV file and create pandas df.
 
-    :param file_path: Path to the CSV file.
-    :type file_path: str or Path
+    :param file_path: Path to the CSV file
     :returns: Loaded DataFrame.
-    :rtype: pandas.DataFrame
-    :raises FileNotFoundError: If file is missing.
-    :raises ValueError: If file is empty or malformed.
     """
     file_path = Path(file_path)
     # Check 1: file exists

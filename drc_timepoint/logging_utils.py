@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 ## LOGGING SETUP
-# log file name setter
+# Log file name setter
 def get_default_log_filename(log_name: str | None = None) -> Path:
     """
     Helper function to setup_logger(), for making log file name with datetimestamp.
@@ -24,14 +24,10 @@ def setup_logger(
     """
     Configure and return a logger.
 
-    :param name: Logger name.
-    :type name: str
-    :param log_file: Path to log file.
-    :type log_file: str or Path or None
-    :param log_to_file: Whether to write logs to file.
-    :type log_to_file: bool
-    :returns: Configured logger instance.
-    :rtype: logging.Logger
+    :param name: Logger name
+    :param log_file: Path to log file
+    :param log_to_file: Whether to write logs to file
+    :returns: Configured logger instance
     """
     # Default log file name if none provided
     if log_file is None:
@@ -42,7 +38,7 @@ def setup_logger(
     # This logger will handle all messages from DEBUG and above (DEBUG < INFO < WARNING < ERROR < CRITICAL)
     logger.setLevel(logging.DEBUG)
 
-    # long format for console and file (timestamp, __name__, log level, your log message, line number where log was called, filename of the script)
+    # Long format for console and file (timestamp, __name__, log level, your log message, line number where log was called, filename of the script)
     long_formatter = logging.Formatter(
         "%(asctime)s: %(name)s: %(levelname)s: %(message)s: Line:%(lineno)d: [%(filename)s]",
         datefmt="%Y-%m-%d %H:%M:%S",

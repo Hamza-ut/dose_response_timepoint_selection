@@ -8,16 +8,17 @@ Public API:
     standardize_od             — standardize OD values (zscore / minmax)
     compute_metrics            — compute SNR, correlation, CV, dynamic range, smoothness
     compute_composite_score    — normalize metrics and compute weighted composite score
-    select_optimal_timepoint   — pick the best timepoint per group based on composite score
+    get_top_rankings           — select top N timepoints per group based on composite score
 """
 
 from .io import load_config, read_csv_file
 from .validation import match_columns, validate_numeric_columns
 from .analysis import (
     standardize_od,
+    standardize_time,
     compute_metrics,
     compute_composite_score,
-    select_optimal_timepoint,
+    get_top_rankings,
 )
 from .runner import run_analysis_from_config
 
@@ -27,8 +28,9 @@ __all__ = [
     "match_columns",
     "validate_numeric_columns",
     "standardize_od",
+    "standardize_time",
     "compute_metrics",
     "compute_composite_score",
-    "select_optimal_timepoint",
+    "get_top_rankings",
     "run_analysis_from_config",
 ]
