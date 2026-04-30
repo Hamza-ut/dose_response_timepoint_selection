@@ -6,14 +6,14 @@ from typing import List, Dict
 
 # Standardize OD values
 def standardize_od(
-    df: pd.DataFrame, od_field: str, group_fields: List[str] = None
+    df: pd.DataFrame, od_field: str, group_fields: List[str]
 ) -> pd.DataFrame:
     """
     Standardize OD values to min-max scale for each group defined by group_fields.
 
     :param df: Input DataFrame
     :param od_field: Column containing OD values
-    :param group_fields: (Optional) Columns to group by before scaling
+    :param group_fields: Columns to group by before scaling
     :returns: DataFrame with an added '{od_field}_standardized' column
     """
     df = df.copy()
@@ -107,9 +107,12 @@ def compute_metrics(
         # METRIC 3: Coefficient of variation for every dose (The small number 1e-8 is added to avoid dividing by zero in case any mean_od happens to be 0)
         cv = (curve_table["std_od"] / (curve_table["mean_od"] + 1e-8)).mean()
 
-        # METRIC 4: Dynamic range (if min mean_od is 0, the result is set to 0 to avoid division-by-zero errors)
-        dynamic_range = curve_table["mean_od"].max() / (
-            curve_table["mean_od"].min() + 1e-8
+        # METRIC 4: Dynamic range
+        # Log ratio of max to min OD. 1e-4 noise floor prevents near-zero standardized
+        # values from inflating the ratio. Result typically ranges 0–4.
+        dynamic_range = np.log10(
+            (curve_table["mean_od"].max() + 1e-4)
+            / (curve_table["mean_od"].min() + 1e-4)
         )
 
         # METRIC 5: Smoothness or slope consistency (mean absolute difference between successive doses).
@@ -119,13 +122,17 @@ def compute_metrics(
         # 0.5 is half the normalized range of OD (assuming OD is scaled 0–1). Dividing by intervals gives ideal size of jump per step
         # A perfect experiment is one where the drug inhibits 50% of growth at the middle dose, so the curve should ideally jump from 0 to 0.5 in the first half of the doses,
         # and then from 0.5 to 1 in the second half. This means that for a perfectly smooth curve, the average jump between doses should be around 0.5 divided by the number of intervals.
-        optimal = 0.5 / (n_intervals)
-        # Tolerance value controls how quickly the score drops off as you move away from the optimal MAD.
-        tolerance = 0.1
-        # Measure how much the curve jumps between consecutive doses, on average.
-        mad = np.abs(np.diff(curve_table["mean_od"])).mean()
-        # Gaussian-like mapping of MAD to 0–1. When MAD == optimal, smoothness = 1. As MAD deviates from optimal, smoothness decreases.
-        smoothness = np.exp(-((mad - optimal) ** 2) / (2 * (tolerance**2)))
+        if n_intervals <= 0:
+            smoothness = 0.0
+        else:
+            tolerance = 0.1  # Tolerance value controls how quickly the score drops off as you move away from the optimal MAD.
+            optimal = 0.5 / n_intervals
+
+            # Measure how much the curve jumps between consecutive doses, on average.
+            mad = np.abs(np.diff(curve_table["mean_od"])).mean()
+
+            # Gaussian-like mapping of MAD to 0–1. When MAD == optimal, smoothness = 1. As MAD deviates from optimal, smoothness decreases.
+            smoothness = np.exp(-((mad - optimal) ** 2) / (2 * (tolerance**2)))
 
         # zip all metrics together
         results.append(
