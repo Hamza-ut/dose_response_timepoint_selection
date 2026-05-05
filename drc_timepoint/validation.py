@@ -10,10 +10,10 @@ def match_columns(df: pd.DataFrame, required_columns: list[str]) -> None:
     :param required_columns: Columns that must exist
     """
     # standardize column names for case-insensitive matching
-    df_columns = [col.strip().lower() for col in df.columns]
+    df.columns = [col.strip().lower() for col in df.columns]
     required_columns = [col.strip().lower() for col in required_columns]
 
-    missing = [col for col in required_columns if col.lower() not in df_columns]
+    missing = [col for col in required_columns if col not in df.columns]
     if missing:
         raise ValueError(
             "CSV file is missing required column(s) as specified in the config file. \n"
