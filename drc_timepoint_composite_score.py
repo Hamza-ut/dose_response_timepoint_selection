@@ -54,12 +54,15 @@ def main() -> None:
         # ----------------------------
         # 4. Export (optional)
         # ----------------------------
+        # if output dir is not specified, it falls back and save results next to input file with suffix "_result.csv"
         if config.get("export_results", False):
             input_path = Path(config["file_path"])
-            output_file = (
-                input_path.parent
-                / f"{input_path.stem}_composite_score_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            )
+            if config.get("output_dir"):
+                output_dir = Path(config["output_dir"])
+                output_dir.mkdir(parents=True, exist_ok=True)
+                output_file = output_dir / f"{input_path.stem}_result.csv"
+            else:
+                output_file = input_path.parent / f"{input_path.stem}_result.csv"
             result_df.to_csv(output_file, index=False)
             logger.info(f"💾 Result exported to CSV: {output_file}\n")
         else:
