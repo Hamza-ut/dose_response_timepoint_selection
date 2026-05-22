@@ -7,5 +7,6 @@
     "od_field": "RawOD",
     "time_field": "Time_h",
     "top_n": 2,
-    "export_results": false
+    "export_results": true,
+    "output_dir": "results"
 }

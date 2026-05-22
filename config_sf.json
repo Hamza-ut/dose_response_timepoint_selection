@@ -8,5 +8,6 @@
     "od_field": "Raw_od",
     "time_field": "hour",
     "top_n": 2,
-    "export_results": false
+    "export_results": false,
+    "output_dir": ""
 }
