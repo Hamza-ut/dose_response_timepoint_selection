@@ -6,5 +6,5 @@
   "time_field": "Time_h",
   "top_n": 2,
   "export_results": true,
-  "output_dir": "results"
+  "export_dir": "results"
 }

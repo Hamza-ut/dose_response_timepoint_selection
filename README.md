@@ -46,7 +46,7 @@ python drc_timepoint_composite_score.py "path/to/config.json"
   "time_field": "Time_h",
   "top_n": 3,
   "export_results": false,
-  "output_dir": ""
+  "export_dir": ""
 }
 ```
 
@@ -59,7 +59,7 @@ python drc_timepoint_composite_score.py "path/to/config.json"
 | time_field     | ✅       | -       | Column containing measurement timepoints.                    |
 | top_n          | ❌       | 3       | Number of top-ranking timepoints to return per group.        |
 | export_results | ❌       | false   | If true, saves the final ranking as a CSV file named `<input_filename>_result.csv`. |
-| output_dir     | ❌       | `""`    | Directory where the result CSV is written. If empty or omitted, the file is saved next to the input file. The directory is created automatically if it does not exist. |
+| export_dir     | ❌       | `""`    | Directory where the result CSV is written. Can be relative or an absolute path anywhere on disk. If empty or omitted, the file is saved next to the input file. The directory is created automatically if it does not exist. |
 
 ---
 

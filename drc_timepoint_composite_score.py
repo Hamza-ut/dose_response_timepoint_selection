@@ -57,10 +57,10 @@ def main() -> None:
         # if output dir is not specified, it falls back and save results next to input file with suffix "_result.csv"
         if config.get("export_results", False):
             input_path = Path(config["file_path"])
-            if config.get("output_dir"):
-                output_dir = Path(config["output_dir"])
-                output_dir.mkdir(parents=True, exist_ok=True)
-                output_file = output_dir / f"{input_path.stem}_result.csv"
+            if config.get("export_dir"):
+                export_dir = Path(config["export_dir"])
+                export_dir.mkdir(parents=True, exist_ok=True)
+                output_file = export_dir / f"{input_path.stem}_result.csv"
             else:
                 output_file = input_path.parent / f"{input_path.stem}_result.csv"
             result_df.to_csv(output_file, index=False)
