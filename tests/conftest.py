@@ -3,7 +3,7 @@ import pytest
 
 
 # fixtures used by io and validation
-@pytest.fixture(scope="module")
+@pytest.fixture
 def csv_data():
     return pd.DataFrame.from_dict(
         {
@@ -15,6 +15,6 @@ def csv_data():
     )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def required_columns():
     return ["species", "hour", "xmic", "raw_od"]
