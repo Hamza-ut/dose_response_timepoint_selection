@@ -16,12 +16,12 @@ dose_response_timepoint_selection/
 │   ├── analysis.py                     # Metrics + scoring functions
 │   └── runner.py                       # Pipeline orchestrator
 ├── drc_timepoint_composite_score.py    # CLI entry point
-├── data/                               # Example datasets
-├── config_sf.json                      # Example config (SF dataset)
-├── config_vallo.json                   # Example config (Vallo dataset)
+├── data/                               # Example datasets + their configs (<dataset>_config.json)
+├── tests/                              # Unit + integration tests
 ├── code_testing.ipynb                  # Exploratory notebook
 ├── algorithm_explanation.md            # Algorithm documentation
 ├── key_concepts.md                     # Background / concepts
+├── dataset_validation_tracker.xlsx     # Dataset tracker: sources, script vs. expert timepoints
 └── requirements.txt
 ```
 
@@ -39,25 +39,25 @@ python drc_timepoint_composite_score.py "path/to/config.json"
 
 ```json
 {
-    "file_path": "data/timepoint_vallo.csv",
-    "group_fields": ["Species"],
-    "dose_field": "uM",
-    "od_field": "RawOD",
-    "time_field": "Time_h",
-    "top_n": 3,
-    "export_results": false
+  "file_path": "data/timepoint_vallo.csv",
+  "group_fields": ["Species"],
+  "dose_field": "uM",
+  "od_field": "RawOD",
+  "time_field": "Time_h",
+  "top_n": 3,
+  "export_results": false
 }
 ```
 
 | Key            | Required | Default | Description                                                  |
 | -------------- | -------- | ------- | ------------------------------------------------------------ |
-| file_path      | ✅        | -       | Path to the input CSV file.                                  |
-| group_fields   | ✅        | -       | Column(s) to group by (e.g., `["Species"]`). Must be a list. |
-| dose_field     | ✅        | -       | Column containing numeric dose/concentration values.         |
-| od_field       | ✅        | -       | Column containing raw OD measurements.                       |
-| time_field     | ✅        | -       | Column containing measurement timepoints.                    |
-| top_n          | ❌        | 3       | Number of top-ranking timepoints to return per group.        |
-| export_results | ❌        | false   | If true, saves the final ranking as a CSV file.              |
+| file_path      | ✅       | -       | Path to the input CSV file.                                  |
+| group_fields   | ✅       | -       | Column(s) to group by (e.g., `["Species"]`). Must be a list. |
+| dose_field     | ✅       | -       | Column containing numeric dose/concentration values.         |
+| od_field       | ✅       | -       | Column containing raw OD measurements.                       |
+| time_field     | ✅       | -       | Column containing measurement timepoints.                    |
+| top_n          | ❌       | 3       | Number of top-ranking timepoints to return per group.        |
+| export_results | ❌       | false   | If true, saves the final ranking as a CSV file, in the same folder as `file_path`, named `<input_filename>_composite_score_<timestamp>.csv`. |
 
 ---
 
@@ -65,7 +65,7 @@ python drc_timepoint_composite_score.py "path/to/config.json"
 
 1. Numeric Integrity: dose_field, od_field, and time_field must contain numeric data.
 2. Automated Standardization: OD values are standardized using Group-Wise Min-Max scaling. This ensures slow-growing species are evaluated relative to their own growth potential, not global maximums.
-3. Time Bucketing: Measurements are rounded to 1 decimal place (precision 1) before analysis to collapse machine drift (seconds/minutes) into meaningful "measurement windows.
+3. Time Bucketing: Measurements are rounded to 1 decimal place (precision 1) before analysis to collapse machine drift (seconds/minutes) into meaningful "measurement windows."
 4. Window Reporting: The "Ideal Time Window" in the output represents the $\pm 0.05h$ range around the standardized timepoint.
 5. Replicate Analysis: To calculate SNR and CV, the script requires multiple measurements per dose. Ensure your group_fields do not include the "Plate" or "Well ID" columns, or the noise-calculation math will have no replicates to compare.
 
@@ -79,7 +79,7 @@ The `drc_timepoint` folder is also a importable Python package. You can use it d
 # Full pipeline from a config dict
 from drc_timepoint import run_analysis_from_config, load_config
 
-config = load_config("config_vallo.json")
+config = load_config("data/timepoint_vallo_config.json")
 result_df = run_analysis_from_config(config)
 
 # Or call individual functions
@@ -103,16 +103,19 @@ The Top N timepoints with the highest composite scores per group are selected an
 
 ## 📊 Results
 
-Currently only tested on two datasets with following results:
+To assess the accuracy of the tool, for each dataset/group, the timepoint window suggested by the script is compared against a timepoint window determined independently by a domain expert (where available):
 
-| Dataset | Condition | Manual Timepoint | Script Timepoint | Match |
-|---------|-----------|-----------------|-----------------|-------|
-| timepoint_vallo.csv | — | 9.5 – 10.5 | 12.95 – 13.05 | ❌ Significant Deviation |
-| timepoint_sf.csv | SF | 6:59:35 | 4.95 – 6.05 | ⚠️ close |
-| timepoint_sf.csv | SFP | 6:59:35 | 4.95 – 6.05 | ⚠️ close |
-| timepoint_sf.csv | 20MSynComm | 32:59:58/32:59:59 | 32.95 – 33.05 | ✅ Match |
-| timepoint_sf.csv | 20MSynComm + SF | 32:59:58 | 30.95 – 31.05 | ⚠️ close |
-| timepoint_sf.csv | 20MSynComm + SFP | 32:59:58 | 30.95 – 31.05 | ⚠️ close |
+| Dataset                          | Group            | Script suggested | Expert suggested    | Verdict                   |
+| -------------------------------- | ---------------- | ---------------- | ------------------- | ------------------------- |
+| timepoint_vallo.csv              | S. flexneri      | 12.95 – 13.05    | 9.5 – 10.5          | ❌ Significant deviation  |
+| timepoint_sf.csv                 | SF               | 4.95 – 6.05      | 6:59:35             | ⚠️ Close                  |
+| timepoint_sf.csv                 | SFP              | 4.95 – 6.05      | 6:59:35             | ⚠️ Close                  |
+| timepoint_sf.csv                 | 20MSynComm       | 32.95 – 33.05    | 32:59:58 / 32:59:59 | ✅ Match                  |
+| timepoint_sf.csv                 | 20MSynComm + SF  | 30.95 – 31.05    | 32:59:58            | ⚠️ Close                  |
+| timepoint_sf.csv                 | 20MSynComm + SFP | 30.95 – 31.05    | 32:59:58            | ⚠️ Close                  |
+| custom_growth_2-FMA_toxicity.csv | KT2440           | 16.95 – 17.05    | —                   | ⏳ Pending expert opinion |
+
+Full dataset sources, download links, comments, and the underlying script-vs-expert comparisons are tracked in [dataset_validation_tracker.xlsx](dataset_validation_tracker.xlsx).
 
 ---
 

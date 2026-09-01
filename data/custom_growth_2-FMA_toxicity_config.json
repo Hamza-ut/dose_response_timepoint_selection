@@ -1,0 +1,9 @@
+{
+  "file_path": "data/custom_growth_2-FMA_toxicity.csv",
+  "group_fields": ["Species"],
+  "dose_field": "Dose",
+  "od_field": "RawOD",
+  "time_field": "Time_h",
+  "top_n": 2,
+  "export_results": true
+}
