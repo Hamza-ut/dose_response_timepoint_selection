@@ -107,19 +107,21 @@ The Top N timepoints with the highest composite scores per group are selected an
 
 To assess the accuracy of the tool, for each dataset/group, the timepoint window suggested by the script is compared against a timepoint window determined independently by a domain expert (where available):
 
-| Dataset                          | Group            | Script suggested | Expert suggested    | Verdict                   |
-| -------------------------------- | ---------------- | ---------------- | ------------------- | ------------------------- |
-| timepoint_vallo.csv              | S. flexneri      | 12.95 – 13.05    | 9.5 – 10.5          | ❌ Significant deviation  |
-| timepoint_sf.csv                 | SF               | 4.95 – 6.05      | 6:59:35             | ⚠️ Close                  |
-| timepoint_sf.csv                 | SFP              | 4.95 – 6.05      | 6:59:35             | ⚠️ Close                  |
-| timepoint_sf.csv                 | 20MSynComm       | 32.95 – 33.05    | 32:59:58 / 32:59:59 | ✅ Match                  |
-| timepoint_sf.csv                 | 20MSynComm + SF  | 30.95 – 31.05    | 32:59:58            | ⚠️ Close                  |
-| timepoint_sf.csv                 | 20MSynComm + SFP | 30.95 – 31.05    | 32:59:58            | ⚠️ Close                  |
-| custom_growth_2-FMA_toxicity.csv | KT2440           | 16.95 – 17.05    | —                   | ⏳ Pending expert opinion |
-| bactgrowth.csv                   | strain D         | 7.95 to 8.05     | —                   | ⏳ Pending expert opinion |
-| bactgrowth.csv                   | strain R         | 8.95 to 9.05     | —                   | ⏳ Pending expert opinion |
-| bactgrowth.csv                   | strain T         | 9.95 to 10.05    | —                   | ⏳ Pending expert opinion |
-| antibiotic.csv                   | R                | 6.45 to 6.55     | —                   | ⏳ Pending expert opinion |
+| Dataset                          | Group                   | Script suggested | Expert suggested    | Verdict                   |
+| -------------------------------- | ----------------------- | ---------------- | ------------------- | ------------------------- |
+| timepoint_vallo.csv              | S. flexneri             | 12.95 – 13.05    | 9.5 – 10.5          | ❌ Significant deviation  |
+| timepoint_sf.csv                 | 20MSynComm, 20          | 32.95 to 33.05   | 32:59:58 / 32:59:59 | ✅ Match                  |
+| timepoint_sf.csv                 | 20MSynComm + SF, 10+10  | 30.95 to 31.05   | 32:59:58            | ⚠️ Close                  |
+| timepoint_sf.csv                 | 20MSynComm + SF, 2+18   | 35.95 to 36.05   | 32:59:58            | ❌ Significant deviation  |
+| timepoint_sf.csv                 | 20MSynComm + SFP, 10+10 | 30.95 – 31.05    | 32:59:58            | ⚠️ Close                  |
+| timepoint_sf.csv                 | 20MSynComm + SFP, 2+18  | 31.95 to 32.05   | 32:59:58            | ⚠️ Close                  |
+| timepoint_sf.csv                 | SF, 20                  | 4.95 to 5.05     | 6:59:35             | ❌ Significant deviation  |
+| timepoint_sf.csv                 | SFP, 20                 | 4.95 to 5.05     | 6:59:35             | ❌ Significant deviation  |
+| custom_growth_2-FMA_toxicity.csv | KT2440                  | 16.95 – 17.05    | —                   | ⏳ Pending expert opinion |
+| bactgrowth.csv                   | strain D                | 7.95 to 8.05     | —                   | ⏳ Pending expert opinion |
+| bactgrowth.csv                   | strain R                | 8.95 to 9.05     | —                   | ⏳ Pending expert opinion |
+| bactgrowth.csv                   | strain T                | 9.95 to 10.05    | —                   | ⏳ Pending expert opinion |
+| antibiotic.csv                   | R                       | 6.45 to 6.55     | —                   | ⏳ Pending expert opinion |
 
 Full dataset sources, download links, comments, and the underlying script-vs-expert comparisons are tracked in [dataset_validation_tracker.xlsx](dataset_validation_tracker.xlsx).
 
@@ -127,6 +129,6 @@ Full dataset sources, download links, comments, and the underlying script-vs-exp
 
 ## 🔭 Future Improvements
 
-- More testing across datasets
+- Testing on more datasets
 - Replacing SNR with a z-factor-like metric (better supported in literature)
 - Smoothness metric currently has very low weight — may be dropped entirely
