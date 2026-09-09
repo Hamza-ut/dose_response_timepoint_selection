@@ -227,7 +227,7 @@ def get_top_rankings(
         ]
     ]
 
-    return top_df
+    return top_df.reset_index(drop=True)
 
 
 # ----------------------------------------------------------- #
