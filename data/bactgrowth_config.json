@@ -1,0 +1,10 @@
+{
+  "file_path": "data/bactgrowth.csv",
+  "group_fields": ["strain"],
+  "dose_field": "conc",
+  "od_field": "value",
+  "time_field": "time",
+  "top_n": 2,
+  "export_results": false,
+  "export_dir": ""
+}

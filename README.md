@@ -50,15 +50,15 @@ python drc_timepoint_composite_score.py "path/to/config.json"
 }
 ```
 
-| Key            | Required | Default | Description                                                  |
-| -------------- | -------- | ------- | ------------------------------------------------------------ |
-| file_path      | ✅       | -       | Path to the input CSV file.                                  |
-| group_fields   | ✅       | -       | Column(s) to group by (e.g., `["Species"]`). Must be a list. |
-| dose_field     | ✅       | -       | Column containing numeric dose/concentration values.         |
-| od_field       | ✅       | -       | Column containing raw OD measurements.                       |
-| time_field     | ✅       | -       | Column containing measurement timepoints.                    |
-| top_n          | ❌       | 3       | Number of top-ranking timepoints to return per group.        |
-| export_results | ❌       | false   | If true, saves the final ranking as a CSV file named `<input_filename>_result.csv`. |
+| Key            | Required | Default | Description                                                                                                                                                                                                                  |
+| -------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| file_path      | ✅       | -       | Path to the input CSV file.                                                                                                                                                                                                  |
+| group_fields   | ✅       | -       | Column(s) to group by (e.g., `["Species"]`). Must be a list.                                                                                                                                                                 |
+| dose_field     | ✅       | -       | Column containing numeric dose/concentration values.                                                                                                                                                                         |
+| od_field       | ✅       | -       | Column containing raw OD measurements.                                                                                                                                                                                       |
+| time_field     | ✅       | -       | Column containing measurement timepoints.                                                                                                                                                                                    |
+| top_n          | ❌       | 3       | Number of top-ranking timepoints to return per group.                                                                                                                                                                        |
+| export_results | ❌       | false   | If true, saves the final ranking as a CSV file named `<input_filename>_result.csv`.                                                                                                                                          |
 | export_dir     | ❌       | `""`    | Directory where the result CSV is written. Can be relative or an absolute path anywhere on disk. If empty or omitted, the file is saved next to the input file. The directory is created automatically if it does not exist. |
 
 ---
@@ -116,6 +116,10 @@ To assess the accuracy of the tool, for each dataset/group, the timepoint window
 | timepoint_sf.csv                 | 20MSynComm + SF  | 30.95 – 31.05    | 32:59:58            | ⚠️ Close                  |
 | timepoint_sf.csv                 | 20MSynComm + SFP | 30.95 – 31.05    | 32:59:58            | ⚠️ Close                  |
 | custom_growth_2-FMA_toxicity.csv | KT2440           | 16.95 – 17.05    | —                   | ⏳ Pending expert opinion |
+| bactgrowth.csv                   | strain D         | 7.95 to 8.05     | —                   | ⏳ Pending expert opinion |
+| bactgrowth.csv                   | strain R         | 8.95 to 9.05     | —                   | ⏳ Pending expert opinion |
+| bactgrowth.csv                   | strain T         | 9.95 to 10.05    | —                   | ⏳ Pending expert opinion |
+| antibiotic.csv                   | R                | 6.45 to 6.55     | —                   | ⏳ Pending expert opinion |
 
 Full dataset sources, download links, comments, and the underlying script-vs-expert comparisons are tracked in [dataset_validation_tracker.xlsx](dataset_validation_tracker.xlsx).
 
